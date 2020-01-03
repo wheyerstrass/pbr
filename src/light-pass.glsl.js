@@ -19,16 +19,17 @@ in vec2 v_uv;
 
 out vec4 color;
 
-void main() {
-  vec3 pos = texture(tex_pos,v_uv).xyz;
-  vec3 nor = texture(tex_nor,v_uv).xyz;
-  vec3 alb = texture(tex_alb,v_uv).xyz;
+const vec3 light = vec3(10,0,10);
 
-  float li = phong(vec3(0.2,0.5,0.1), vec3(10.), pos, nor);
-  vec3 col = li*alb;
-  col = (col-0.5) * 1.5 + 0.5 + 0.;
-  //col = col / (col+1.);
-  //col = pow(col, vec3(1./2.2));
+void main() {
+  vec3 pos = texture(g_pos,v_uv).xyz;
+  vec3 nor = texture(g_nor,v_uv).xyz;
+  vec3 alb = pow(texture(g_alb,v_uv).xyz, vec3(2.2));
+  float ao = texture(g_ao,v_uv).r;
+  float ruff = texture(g_ruff,v_uv).r;
+  float met = texture(g_met,v_uv).r;
+
+  vec3 col = pbr(light, vec3(1), cam, pos, nor, alb, ao, ruff, met);
   color = vec4(col,1);
 }
 `

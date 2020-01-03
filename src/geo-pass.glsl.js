@@ -27,13 +27,21 @@ in vec4 v_pos;
 in vec4 v_nor;
 
 layout(location=0) out vec4 g_pos;
+
 layout(location=1) out vec4 g_nor;
 layout(location=2) out vec4 g_alb;
+layout(location=3) out vec4 g_ao;
+layout(location=4) out vec4 g_met;
+layout(location=5) out vec4 g_ruff;
 
 void main() {
   g_pos = v_pos;
-  g_nor = v_nor;
-  g_alb = vec4(1);
+
+  g_nor = texture(tex_nor,v_uv);
+  g_alb = texture(tex_alb,v_uv);
+  g_ao = texture(tex_ao,v_uv);
+  g_met = texture(tex_met,v_uv);
+  g_ruff = texture(tex_ruff,v_uv);
 }
 `
 }

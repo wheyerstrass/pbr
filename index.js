@@ -1,3 +1,9 @@
+import alb from "./assets/hull2/alb.png"
+import nor from "./assets/hull2/nor.png"
+import met from "./assets/hull2/met.png"
+import ao from "./assets/hull2/ao.png"
+import ruff from "./assets/hull2/ruff.png"
+
 import pbr from "./src/engine.js"
 import camera from "./src/cam.js"
 
@@ -29,7 +35,7 @@ gl.clearColor(0.2,0.2,0.2,1)
  * cam */
 let cam = camera(gl, w/h)
 cam.fpsControls()
-cam.pos[2] = 5
+cam.pos[2] = 3
 
 /*
  * init engine */
@@ -37,13 +43,22 @@ const engine = pbr(gl, w, h, cam)
 
 /*
  * load assets */
-const {img,key} = engine.assets
-img("hull.alb", "./assets/hull/alb.png")
-
+//const {img,key} = engine.assets
+//img("hull.alb", "./assets/hull/alb.png")
 
 /*
  * load meshes */
-engine.obj(engine.mesh.sphereOut(3), matrix.translate([0,0,0]))
+engine.obj(
+  engine.mesh.quad(3),
+  matrix.translate([0,0,0]),
+  {
+    alb: alb,
+    nor: nor,
+    met: met,
+    ao: ao,
+    ruff: ruff,
+  }
+)
 
 /*
  * start */

@@ -73,12 +73,48 @@ export default function(gl, w, h, cam) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
   gl.framebufferTexture2D(gl.FRAMEBUFFER,
     gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, alb_tex, 0)
+  /*
+   * amb occl attachment */
+  const ao_tex = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, ao_tex)
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB, w,h, 0, gl.RGB,gl.UNSIGNED_BYTE, null)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, ao_tex, 0)
+  /*
+   * metallness attachment */
+  const met_tex = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, met_tex)
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB, w,h, 0, gl.RGB,gl.UNSIGNED_BYTE, null)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT4, gl.TEXTURE_2D, met_tex, 0)
+  /*
+   * roughness attachment */
+  const ruff_tex = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, ruff_tex)
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB, w,h, 0, gl.RGB,gl.UNSIGNED_BYTE, null)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT5, gl.TEXTURE_2D, ruff_tex, 0)
 
   /* set which buffers to draw/render to */
   gl.drawBuffers([
     gl.COLOR_ATTACHMENT0,
     gl.COLOR_ATTACHMENT1,
-    gl.COLOR_ATTACHMENT2
+    gl.COLOR_ATTACHMENT2,
+    gl.COLOR_ATTACHMENT3,
+    gl.COLOR_ATTACHMENT4,
+    gl.COLOR_ATTACHMENT5,
   ])
 
   /*
@@ -103,14 +139,20 @@ export default function(gl, w, h, cam) {
   } = _pass(gl, geopass, [
     "mat4 P", "mat4 view",
     "mat4 model",
+
+    "sampler2D tex_alb",
+    "sampler2D tex_nor",
+    "sampler2D tex_met",
+    "sampler2D tex_ao",
+    "sampler2D tex_ruff",
   ])
 
   const _mat_to_texarr = ({alb, nor, met, ao, ruff}) => ({
-    alb: shader.tex2d(gl, g_id, 0, g_locs["tex_alb"], alb),
-    nor: shader.tex2d(gl, g_id, 1, g_locs["tex_nor"], nor),
-    met: shader.tex2d(gl, g_id, 2, g_locs["tex_met"], met),
-    ao: shader.tex2d(gl, g_id, 3, g_locs["tex_ao"], ao),
-    ruff: shader.tex2d(gl, g_id, 4, g_locs["tex_ruff"], ruff),
+    alb: shader.tex2d_async(gl, g_id, 0, g_locs["tex_alb"], alb),
+    nor: shader.tex2d_async(gl, g_id, 1, g_locs["tex_nor"], nor),
+    met: shader.tex2d_async(gl, g_id, 2, g_locs["tex_met"], met),
+    ao: shader.tex2d_async(gl, g_id, 3, g_locs["tex_ao"], ao),
+    ruff: shader.tex2d_async(gl, g_id, 4, g_locs["tex_ruff"], ruff),
   })
 
   const obj = (mesh, model, mat) => {
@@ -119,14 +161,18 @@ export default function(gl, w, h, cam) {
     g_mats.push(_mat_to_texarr(mat))
   }
 
-  const { id: l_id, locs: l_locs } =_pass(gl, lightpass, [
+  const { id: l_id, locs: l_locs } = _pass(gl, lightpass, [
     "mat4 P", "mat4 view",
     "mat4 model",
+    "vec3 cam",
 
-    "sampler2D tex_pos",
-    "sampler2D tex_nor",
-    "sampler2D tex_alb",
-    "sampler2D tex_depth",
+    "sampler2D g_pos",
+    "sampler2D g_nor",
+    "sampler2D g_alb",
+    "sampler2D g_ao",
+    "sampler2D g_met",
+    "sampler2D g_ruff",
+    //"sampler2D g_depth",
   ])
   const _lightpass_quad = meshes.quad(gl, l_id)
 
@@ -146,22 +192,35 @@ export default function(gl, w, h, cam) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.useProgram(l_id)
+    gl.uniform3fv(l_locs["cam"], cam.pos)
 
     // bind position
-    gl.activeTexture(gl.TEXTURE0+0)
-    gl.uniform1i(l_locs["tex_pos"], 0)
+    gl.activeTexture(gl.TEXTURE0+10)
+    gl.uniform1i(l_locs["g_pos"], 10)
     gl.bindTexture(gl.TEXTURE_2D, pos_tex)
     // bind normal
-    gl.activeTexture(gl.TEXTURE0+1)
-    gl.uniform1i(l_locs["tex_nor"], 1)
+    gl.activeTexture(gl.TEXTURE0+11)
+    gl.uniform1i(l_locs["g_nor"], 11)
     gl.bindTexture(gl.TEXTURE_2D, nor_tex)
     // bind albedo
-    gl.activeTexture(gl.TEXTURE0+2)
-    gl.uniform1i(l_locs["tex_alb"], 2)
+    gl.activeTexture(gl.TEXTURE0+12)
+    gl.uniform1i(l_locs["g_alb"], 12)
     gl.bindTexture(gl.TEXTURE_2D, alb_tex)
+    // bind ao
+    gl.activeTexture(gl.TEXTURE0+13)
+    gl.uniform1i(l_locs["g_ao"], 13)
+    gl.bindTexture(gl.TEXTURE_2D, ao_tex)
+    // bind met
+    gl.activeTexture(gl.TEXTURE0+14)
+    gl.uniform1i(l_locs["g_met"], 14)
+    gl.bindTexture(gl.TEXTURE_2D, met_tex)
+    // bind ruff
+    gl.activeTexture(gl.TEXTURE0+15)
+    gl.uniform1i(l_locs["g_ruff"], 15)
+    gl.bindTexture(gl.TEXTURE_2D, ruff_tex)
     // bind depth
-    gl.activeTexture(gl.TEXTURE0+3)
-    gl.uniform1i(l_locs["tex_depth"], 3)
+    gl.activeTexture(gl.TEXTURE0+16)
+    gl.uniform1i(l_locs["g_depth"], 16)
     gl.bindTexture(gl.TEXTURE_2D, depth_tex)
     // draw
     _lightpass_quad.draw()
@@ -171,8 +230,6 @@ export default function(gl, w, h, cam) {
   }
 
   const start = () => {
-    if(assets.ready())
-      return start()
     return requestAnimationFrame(render)
   }
 
@@ -181,7 +238,8 @@ export default function(gl, w, h, cam) {
     obj,
     assets,
     mesh: {
-      sphereOut: (res) => meshes.sphereOut(gl, g_id, res)
+      sphereOut: (res) => meshes.sphereOut(gl, g_id, res),
+      quad: () => meshes.quad(gl, g_id)
     },
     start
   }

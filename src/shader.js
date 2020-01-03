@@ -1,3 +1,10 @@
+const dummy = new Uint8Array([
+  200, 200, 200, 255,
+  100, 100, 100, 255,
+  200, 200, 200, 255,
+  100, 100, 100, 255,
+])
+
 export default {
 
   prog: function(gl, vertSrc, fragSrc, uniforms) {
@@ -42,6 +49,26 @@ export default {
     gl.bindTexture(gl.TEXTURE_2D, id)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
     gl.generateMipmap(gl.TEXTURE_2D)
+    return {id}
+  },
+
+  tex2d_async: function(gl, progId, texunit, loc, img) {
+    gl.useProgram(progId)
+    gl.uniform1i(loc, texunit)
+    let id = gl.createTexture()
+    gl.activeTexture(gl.TEXTURE0+texunit)
+    gl.bindTexture(gl.TEXTURE_2D, id)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, dummy)
+    gl.generateMipmap(gl.TEXTURE_2D)
+    const _img = new Image()
+    _img.src = img
+    _img.addEventListener("load", function() {
+      gl.activeTexture(gl.TEXTURE0+texunit)
+      gl.bindTexture(gl.TEXTURE_2D, id)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _img)
+      gl.generateMipmap(gl.TEXTURE_2D)
+    })
     return {id}
   },
 
